@@ -1,0 +1,9 @@
+#!/bin/tcsh
+make
+curl -O ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/ghcnd_hcn.tar.gz
+curl -O ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily//ghcnd-stations.txt
+tar xzvf ghcnd_hcn.tar.gz
+cd ghcnd_hcn
+cat *.dly > US.txt
+ln -s ../ghcn.exe
+ln -s ../ghcnd-stations.txt
