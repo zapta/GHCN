@@ -9,7 +9,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 // Links for data and related docs:
+// ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt
+// ftp://ftp.ncdc.noaa.gov/pub/data/cdo/documentation/GHCND_documentation.pdf
 // http://www.montana.edu/atwood/weatherdata/ghcn_readme.pdf
+//
 // ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/all/USC00045123.dly
 // ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt
 
@@ -25,6 +28,9 @@ public class LocalFileCache {
     this(DEFAULT_CACHE_DIR_PATH);
   }
 
+  /**
+   * Create a cache instance on an existing and writeable local disk directory.
+   */
   public LocalFileCache(String cacheDirPath) throws Exception {
     this.cacheDir = new File(cacheDirPath);
     // TODO: consider to replace with auto creation of the cache directory?
@@ -33,10 +39,18 @@ public class LocalFileCache {
     }
   }
 
+  /**
+   * Given a station id, return a File for it's file in the cache. The file itself may
+   * or may not exist.
+   */
   public File stationDataLocalFile(String stationId) throws Exception {
     return new File(cacheDir, stationId + ".dly");
   }
 
+  /**
+   * Given a list of station ids, check which ones already have thier data files in the local cache.
+   * @return the sublist of station ids that are missing in the cache.
+   */
   private List<String> findMissingLocalStationFiles(List<String> stationIds) throws Exception {
     List<String> result = new ArrayList();
     // TODO: reading the cache directory list may be faster than checking each file.
@@ -45,10 +59,14 @@ public class LocalFileCache {
         result.add(stationId);
       }
     }
-    out.printf("%d of %d stations are in cache\n", stationIds.size() - result.size(), stationIds.size());
+    out.printf("%d of %d station files are alerady in the local cache\n", stationIds.size() - result.size(), stationIds.size());
     return result;
   }
 
+  /**
+   * Given a list of station ids that are missing in the cache, fetch and cache them. This
+   * can take some time to complete.
+   */
   private void fetchStationFiles(List<String> stationIds) throws Exception {
     if (stationIds.isEmpty()) {
       return;
@@ -69,23 +87,38 @@ public class LocalFileCache {
   }
 
 
+  /**
+   * Given a list of station ids, make all of them having their data file cached on local disk.
+   * This method fetched the missing data files
+   */
   public void cacheStationsFilesByIds(List<String> stationIds) throws Exception {
     final List<String> missingStationIds = findMissingLocalStationFiles(stationIds);
     fetchStationFiles(missingStationIds);
   }
 
-
+   /* Given a list of station records, make all of them having their data file cached on local disk.
+   * This method fetched the missing data files
+   */
   public void cacheStationsFilesByRecords(List<StationRecord> stations) throws Exception {
     cacheStationsFilesByIds(stations.stream().map(s->s.id).collect(Collectors.toList()));
   }
 
 
+  /**
+   * Construct a File that points to the GHCN stations file in the local cache. The file itself
+   * may or may not already be in the cache.
+   */
   public File stationsListLocalFile() throws Exception {
     return new File(cacheDir, "ghcnd-stations.txt");
   }
 
-  // TODO: consider cache N stations in parallel.
+  /**
+   * Makes sure that the stations file is in the local cache. If not, it fetches it.
+   * @throws Exception
+   */
   public void cacheStationsListFile() throws Exception {
+    // TODO: consider cache N stations in parallel.
+
     final File localStationsFile = stationsListLocalFile();
     if (stationsListLocalFile().exists()) {
       return;
@@ -100,5 +133,4 @@ public class LocalFileCache {
     out.printf("Closing connection to ftp.ncdc.noaa.gov\n");
     client.disconnect(true);
   }
-
 }

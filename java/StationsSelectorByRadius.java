@@ -1,19 +1,20 @@
-import data.Processor;
+import geo.GeoPoint;
+import data.DataProcessor;
 import data.StationRecord;
 
-public  class StationsSelectorByRadius implements Processor.StationSelector {
-  private final float lat;
-  private final float lng;
-  private final int radiusKm;
+public  class StationsSelectorByRadius extends DataProcessor.StationSelector {
+  private final GeoPoint center;
+//  private final float lat;
+//  private final float lng;
+  private final double radiusKm;
 
-  public StationsSelectorByRadius(float lat, float lng, int radiusKm) {
-    this.lat = lat;
-    this.lng = lng;
+  public StationsSelectorByRadius(GeoPoint center, double radiusKm) {
+    this.center = center;
     this.radiusKm = radiusKm;
   }
 
   @Override
   public boolean onStation(StationRecord station) {
-    return station.distanceMetersFromLatLng(lat, lng) < radiusKm * 1000;
+    return station.distanceMetersFromLatLng(center) < radiusKm * 1000;
   }
 }
