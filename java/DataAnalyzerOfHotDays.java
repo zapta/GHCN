@@ -16,9 +16,9 @@ public class DataAnalyzerOfHotDays extends DataAnalyzer {
 
   private Map<Integer, AnnualData> dataMap = new HashMap();
 
-  private final int tempC;
+  private final float tempC;
 
-  public DataAnalyzerOfHotDays(int tempC) {
+  public DataAnalyzerOfHotDays(float tempC) {
     this.tempC = tempC;
   }
 
@@ -61,10 +61,10 @@ public class DataAnalyzerOfHotDays extends DataAnalyzer {
   }
 
   public void chartResults() {
+
     final int[] years = computeYearRange(dataMap.keySet());
     final float[] values = new float[years.length];
     for (int i = 0; i < years.length; i++) {
-
       final AnnualData annualData = dataMap.get(years[i]);
       if (annualData != null) {
         values[i] = 365.0f * ((float) annualData.hotCount / annualData.totalCount);

@@ -10,13 +10,14 @@ import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 
 import java.awt.*;
+import java.io.PrintStream;
 
 // TODO: cleanup
 
 public class Chart extends ApplicationFrame {
+  private final static PrintStream out = System.out;
 
-
-  public Chart(int[] years, float[] values) {
+  private Chart(int[] years, float[] values) {
 
     super("GHCN Analyzer");
 
@@ -28,7 +29,7 @@ public class Chart extends ApplicationFrame {
     final XYSeriesCollection data = new XYSeriesCollection(series);
 
     final JFreeChart chart = ChartFactory.createXYLineChart(
-        "State of Oklahoma",
+        "xxxxxxxxxx",
         "Year",
         "Days > 95F",
         data,
@@ -50,7 +51,7 @@ public class Chart extends ApplicationFrame {
 
     final ChartPanel chartPanel = new ChartPanel(chart);
 
-    chartPanel.setPreferredSize(new java.awt.Dimension(800, 400));
+    chartPanel.setPreferredSize(new java.awt.Dimension(1000, 400));
 
 
     //chartPanel.setBackground(Color.YELLOW);
@@ -60,10 +61,15 @@ public class Chart extends ApplicationFrame {
   }
 
   public static void plot(int[] years, float[] values) {
+    out.println("Starting chart");
     final Chart demo = new Chart(years, values);
     demo.pack();
     RefineryUtilities.centerFrameOnScreen(demo);
     demo.setVisible(true);
+  }
+
+  public static void printTest(String msg) {
+    out.println(msg);
   }
 }
 
