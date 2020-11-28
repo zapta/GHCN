@@ -1,6 +1,8 @@
 import data.DataProcessor;
 import data.DataProcessor.StationSelector;
+import data.DataProcessor.DataSelector;
 import data.DataRecord;
+import data.DataRecord.Type;
 import data.LocalFileCache;
 import geo.GeoPoint;
 
@@ -12,6 +14,8 @@ public class Main {
   final static GeoPoint OKLAHOMA_CITY = new GeoPoint(35.482222f, -97.535f);
 
   final static GeoPoint NEW_YORK = new GeoPoint(40.7127f, -74.0059f);
+  
+  final static GeoPoint LOS_ANGELES = new GeoPoint(34.05f, -118.25f);
 
   private static class ChartLoaderTask extends Thread {
     @Override
@@ -28,14 +32,20 @@ public class Main {
     final LocalFileCache cache = new LocalFileCache("/tmp/ghcn_cache");
 
     //final StationSelector stationsSelector = new StationsSelectorByRadius(NEW_YORK, Units.milesToKm(100));
-    //final StationSelector stationsSelector = new StationSelectorUsStates("OK");
-    final StationSelector stationsSelector = new StationSelectorUsStates("CO");
+    //final StationSelector stationsSelector = new StationsSelectorByRadius(LOS_ANGELES, Units.milesToKm(100));
+    final StationSelector stationsSelector = new StationSelectorUsStates("OK");
+    //final StationSelector stationsSelector = new StationSelectorUsStates("CA");
 
-    final DataProcessor.DataSelector dataSelector = new DataSelectorByTypeAndYearRange(DataRecord.Type.TMAX, 1900, 2017);
+    //final DataProcessor.DataSelector dataSelector = new DataSelectorByTypeAndYearRange(DataRecord.Type.TMAX, 1900, 2017);
     //final DataSelector dataSelector = new DataSelectorByTypeAndYearRange(DataRecord.Type.PRCP, 1800, 2100);
+    //final DataSelector dataSelector = new DataSelectorByTypeAndYearRange(1800, 2100, Type.TAVG );
+    final DataSelector dataSelector = new DataSelectorByTypeAndYearRange(1800, 2100,
+        Type.TAVG, Type.TMAX, Type.TMIN, Type.PRCP);
 
-    final DataAnalyzerOfHotDays dataAnalyzer = new DataAnalyzerOfHotDays(Units.farenheitToCelcius(95f));
+    //final DataAnalyzerOfHotDays dataAnalyzer = new DataAnalyzerOfHotDays(Units.farenheitToCelcius(95f));
     //final DataAnalyzerOfPrecipitation dataAnalyzer = new DataAnalyzerOfPrecipitation();
+    //final DataAnalyzerOfTAvg dataAnalyzer = new DataAnalyzerOfTAvg();
+    final DataAnalyzerOfDataPoints dataAnalyzer = new DataAnalyzerOfDataPoints();
 
     final DataProcessor processor = new DataProcessor();
     processor.process(cache, stationsSelector, dataSelector, dataAnalyzer);

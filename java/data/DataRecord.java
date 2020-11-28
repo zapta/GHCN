@@ -12,6 +12,7 @@ public class DataRecord {
 
   public enum Type {
     PRCP("PRCP", 0.1f),
+    TAVG("TAVG", 0.1f),
     TMIN("TMIN", 0.1f),
     TMAX("TMAX", 0.1f);
 
