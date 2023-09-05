@@ -105,7 +105,7 @@ def fetch_station_summary(station_id: str) -> Any:
         os.remove(local_csv_path)
 
     # Fetch station raw data
-    raw_df = fetch_station_raw_data("USC00047965")
+    raw_df = fetch_station_raw_data(station_id)
     # print(df_raw)
 
     # Extract tmin by date
@@ -138,9 +138,24 @@ def fetch_station_summary(station_id: str) -> Any:
     summary_df = summary_df.reindex(['ymd', 'year', 'month', 'tmin', 'tmax', 'tavg'], axis=1)
     summary_df.sort_values(by=['ymd'], inplace=True)
 
-    summary_df.set_index('ymd', inplace=True)
+    # summary_df.set_index('ymd', inplace=True)
     return summary_df
 
 
-df = fetch_station_summary("USC00047965")
+df1 = fetch_station_summary("USC00043244") # Fremont
+df1 = df1.loc[df1['month'] == 8]
+
+#df2 = fetch_station_summary("USC00047965") # Santa Rosa
+df2 = fetch_station_summary("USW00094298") # Vancouver WA
+df2 = df2.loc[df2['month'] == 8]
+
+
+df = pd.merge(df1[['ymd', 'tavg']],  df2[['ymd', 'tavg']], on='ymd', how="inner")
 print(df)
+
+df['diff'] = (df['tavg_y'] - df['tavg_x'])
+print(df)
+
+x = df['diff'].mean()
+print(x)
+
