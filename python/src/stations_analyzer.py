@@ -113,20 +113,20 @@ def fetch_station_summary(station_id: str) -> Any:
     min_df = min_df[['ymd', 'value']].copy()
     min_df['value'] = min_df['value'] / 10.0
     min_df.rename(columns={"value": 'tmin'}, inplace=True)
-    print(min_df)
+    # print(min_df)
 
     # Extract tmax by date
     max_df = raw_df.loc[raw_df['elem'] == "TMAX"]
     max_df = max_df[['ymd', 'value']].copy()
     max_df['value'] = max_df['value'] / 10.0
     max_df.rename(columns={"value": 'tmax'}, inplace=True)
-    print(max_df)
+    # print(max_df)
 
     # Compute tavg by date
     avg_df = pd.merge(min_df, max_df, on='ymd', how='inner')
     avg_df['tavg'] = avg_df[['tmin', 'tmax']].mean(1)
     avg_df.drop(['tmin', 'tmax'], axis=1, inplace=True)
-    print(avg_df)
+    # print(avg_df)
 
     # Combine tmin, tmax, tavg by date
     summary_df = pd.merge(min_df, max_df, on='ymd', how='outer')
@@ -138,6 +138,7 @@ def fetch_station_summary(station_id: str) -> Any:
     summary_df = summary_df.reindex(['ymd', 'year', 'month', 'tmin', 'tmax', 'tavg'], axis=1)
     summary_df.sort_values(by=['ymd'], inplace=True)
 
+    summary_df.set_index('ymd', inplace=True)
     return summary_df
 
 
