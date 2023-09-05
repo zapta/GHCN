@@ -18,8 +18,8 @@ logging.basicConfig(
 logger = logging.getLogger("main")
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--lat', type=float, dest="lat", default=37.1427, help="Latitude of center of search radius")
-parser.add_argument('--lon', type=float, dest="lon", default=-121.9725, help="Longitude of center of search radius")
+parser.add_argument('--lat', type=float, dest="lat", default=37.256604, help="Latitude of center of search radius")
+parser.add_argument('--lon', type=float, dest="lon", default=-121.858915, help="Longitude of center of search radius")
 parser.add_argument('--radius_km', type=float, dest="radius_km", default=50.0, help="Radius of search circle, in km.")
 parser.add_argument('--min_year', type=int, dest="min_year", default=2015, help="First year of data of interest.")
 parser.add_argument('--max_year', type=int, dest="max_year", default=2022, help="Last year of data of interest.")
@@ -139,6 +139,9 @@ def get_candidate_stations() -> Any:
     # df.to_csv(local_file_path('_info_with_distance.csv'), index=False, header=True)
     result = df1.loc[
         (df1['dist'] <= args.radius_km) & (df1['first_year'] <= args.min_year) & (df1['last_year'] >= args.max_year)]
+    result.sort_values(by=['dist'], inplace=True)
+    result.set_index('station_id', inplace=True)
+    result.drop(['gsn_flag', 'hcn_crn', 'wmo_id'], axis=1, inplace=True)
     return result
 
 
