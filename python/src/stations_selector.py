@@ -136,7 +136,6 @@ def get_candidate_stations() -> Any:
     """Return data frame with info of matching stations"""
     df1 = get_stations_info()
     inject_distance_to_point(df1, args.lat, args.lon)
-    # df.to_csv(local_file_path('_info_with_distance.csv'), index=False, header=True)
     result = df1.loc[
         (df1['dist'] <= args.radius_km) & (df1['first_year'] <= args.min_year) & (df1['last_year'] >= args.max_year)]
     result.sort_values(by=['dist'], inplace=True)
