@@ -18,6 +18,12 @@ logging.basicConfig(
 logger = logging.getLogger("main")
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--lat', type=float, dest="lat", default=37.1427, help="Latitude of center of search radius")
+parser.add_argument('--lon', type=float, dest="lon", default=-121.9725, help="Longitude of center of search radius")
+parser.add_argument('--radius_km', type=float, dest="radius_km", default=50.0, help="Radius of search circle, in km.")
+parser.add_argument('--min_year', type=int, dest="min_year", default=2015, help="First year of data of interest.")
+parser.add_argument('--max_year', type=int, dest="max_year", default=2022, help="Last year of data of interest.")
+
 parser.add_argument("--data_cache_dir",
                     dest="data_cache_dir",
                     default="./_data_cache",
@@ -126,15 +132,15 @@ def get_stations_info():
     return info_df
 
 
-def get_candidate_stations(lat:float, lon:float, radius_km:float=50, min_year: int = 2015, max_year: int = 2022) -> Any:
+def get_candidate_stations() -> Any:
     """Return data frame with info of matching stations"""
     df1 = get_stations_info()
-    inject_distance_to_point(df1, lat, lon)
+    inject_distance_to_point(df1, args.lat, args.lon)
     # df.to_csv(local_file_path('_info_with_distance.csv'), index=False, header=True)
-    result = df1.loc[(df1['dist'] <= radius_km) & (df1['first_year'] <= min_year) & (df1['last_year'] >= max_year)]
+    result = df1.loc[
+        (df1['dist'] <= args.radius_km) & (df1['first_year'] <= args.min_year) & (df1['last_year'] >= args.max_year)]
     return result
 
 
-df = get_candidate_stations(37.1427, -121.9725, 50)
+df = get_candidate_stations()
 print(df)
-
