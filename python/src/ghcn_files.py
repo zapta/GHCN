@@ -105,49 +105,36 @@ def inject_distance_to_point(station_list_df: Any, lat: float, lon: float) -> An
     station_list_df.insert(len(station_list_df.columns), "dist", distances)
 
 
-# def haversine2(Opt, Dpt):
-#     radius = 6371.  # Earth in km
-#     d_lat = np.radians(Dpt[0] - Opt[0])
-#     d_lon = np.radians(Dpt[1] - Opt[1])
-#     a = (np.sin(d_lat / 2.) * np.sin(d_lat / 2.) +
-#          np.cos(np.radians(Opt[0])) * np.cos(np.radians(Dpt[0])) *
-#          np.sin(d_lon / 2.) * np.sin(d_lon / 2.))
-#     c = 2. * np.arctan2(np.sqrt(a), np.sqrt(1. - a))
-#     d = radius * c
-#     return d
+def get_stations_info():
+    """Returns a data frame with stations list and inventory info"""
+    file_name = "_stations_info.csv"
+    file_path = local_file_path(file_name)
+    if os.path.exists(file_path):
+        if not args.force_fetch:
+            logger.info(f"File {file_name} already in cache.")
+            info_df = pd.read_csv(file_path, delimiter=',')
+            return info_df
+        logger.info(f"Deleting the old cache file {file_name}.")
+        os.remove(file_path)
+    stations_df = fetch_stations_list()
+    inventory_df = fetch_station_inventory()
+    tmp_df = inventory_df.loc[inventory_df['elem'] == "TMIN"]
+    tmp_df = tmp_df[['station_id', 'first_year', 'last_year']]
+    info_df = pd.merge(stations_df, tmp_df, on='station_id', how='left')
+    logger.info(f"Writing stations info cache file {file_name}")
+    info_df.to_csv(file_path, index=False, header=True)
+    return info_df
 
 
-df = fetch_stations_list()
-inject_distance_to_point(df, 37.1427, -121.9725)
+def get_candidate_stations(lat:float, lon:float, radius_km:float=50, min_year: int = 2015, max_year: int = 2022) -> Any:
+    """Return data frame with info of matching stations"""
+    df1 = get_stations_info()
+    inject_distance_to_point(df1, lat, lon)
+    # df.to_csv(local_file_path('_info_with_distance.csv'), index=False, header=True)
+    result = df1.loc[(df1['dist'] <= radius_km) & (df1['first_year'] <= min_year) & (df1['last_year'] >= max_year)]
+    return result
+
+
+df = get_candidate_stations(37.1427, -121.9725, 50)
 print(df)
 
-df.to_csv(local_file_path("_distances.csv"), index=False, float_format="%.1f", header=True)
-
-candidates = df.loc[(df['dist'] <= 50)]
-print(candidates)
-
-
-
-# print(df[["lat", "lon"]].to_numpy())
-
-# print("------------ x1 ")
-# x1 = haversine(17.1167, -61.7833, df[["lat"]].to_numpy(), df[["lon"]].to_numpy())
-# print(x1)
-
-# print (len(df.columns))
-#
-# df.insert(len(df.columns), "dist", x1)
-# print(df)
-#
-# # print("------------ x2 ")
-
-# x2 = haversine2((17.1167 ,-61.7833), df[["lat", "lon"]].to_numpy() )
-# print(x2)
-
-# print("------@@@@@@@@@@@@@")
-# print(df[["lat", "lon"]].to_numpy())
-
-# print(df[:, 0])
-
-# df = fetch_station_inventory()
-# print(df)
