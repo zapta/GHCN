@@ -4,9 +4,10 @@ import os
 import logging
 import argparse
 import time
-from typing import Any
+from typing import Any, Tuple, List
 import gzip
 import shutil
+import matplotlib.pyplot as plt
 
 # ghcn files formats
 # https://docs.opendata.aws/noaa-ghcn-pds/readme.html
@@ -34,6 +35,22 @@ args = parser.parse_args()
 
 pd.set_option('display.max_columns', 15)
 pd.set_option('display.width', 200)
+
+BASE_STATION = ("USC00043244", "San Jose") # Fremont station.
+
+STATION_LIST = [
+    ("USC00415766", "Frisco"),
+    ("USW00013961", "Fort Worth"),
+    ("USC00350694", "Bend"),
+    ("USC00047965", "Santa Rosa"),
+    # ("USC00044025", "Holister"),
+    # ("USW00094298", "Vancouver"),
+    ("USW00023277", "Watsonvile"),
+    # ("ISE00105694", "Bet Dagan"),
+    # ("USW00024234", "Seattle"),
+    # ("USC00043714", "Half Moon Bay"),
+    # ("USC00046719", "Pasadena")
+]
 
 
 def local_file_path(local_file_name: str) -> str:
@@ -108,54 +125,127 @@ def fetch_station_summary(station_id: str) -> Any:
     raw_df = fetch_station_raw_data(station_id)
     # print(df_raw)
 
-    # Extract tmin by date
+    # Extract precipitation by date, in inches.
+    prcp_df = raw_df.loc[raw_df['elem'] == "PRCP"]
+    prcp_df = prcp_df[['ymd', 'value']].copy()
+    # Convert tenth of mm to inches.
+    prcp_df['value'] = prcp_df['value'] / 254.0
+    prcp_df.rename(columns={"value": 'prcp'}, inplace=True)
+
+    # Extract tMin by date, in C.
     min_df = raw_df.loc[raw_df['elem'] == "TMIN"]
     min_df = min_df[['ymd', 'value']].copy()
+    # Convert tenth of C to C.
     min_df['value'] = min_df['value'] / 10.0
     min_df.rename(columns={"value": 'tmin'}, inplace=True)
     # print(min_df)
 
-    # Extract tmax by date
+    # Extract tMax by date, in C.
     max_df = raw_df.loc[raw_df['elem'] == "TMAX"]
     max_df = max_df[['ymd', 'value']].copy()
+    # Convert tenth of C to C.
     max_df['value'] = max_df['value'] / 10.0
     max_df.rename(columns={"value": 'tmax'}, inplace=True)
     # print(max_df)
 
-    # Compute tavg by date
+    # Compute tAvg by date, in C.
     avg_df = pd.merge(min_df, max_df, on='ymd', how='inner')
     avg_df['tavg'] = avg_df[['tmin', 'tmax']].mean(1)
     avg_df.drop(['tmin', 'tmax'], axis=1, inplace=True)
     # print(avg_df)
 
-    # Combine tmin, tmax, tavg by date
-    summary_df = pd.merge(min_df, max_df, on='ymd', how='outer')
+    # Combine prcp, tmin, tmax, tavg by date
+    summary_df = pd.merge(prcp_df, min_df, on='ymd', how='outer')
+    summary_df = pd.merge(summary_df, max_df, on='ymd', how='outer')
     summary_df = pd.merge(summary_df, avg_df, on='ymd', how='outer')
 
     # Add specific columns for year and month
     summary_df['year'] = summary_df[['ymd']].floordiv(10000)
     summary_df['month'] = summary_df[['ymd']].mod(10000).floordiv(100)
-    summary_df = summary_df.reindex(['ymd', 'year', 'month', 'tmin', 'tmax', 'tavg'], axis=1)
+    summary_df = summary_df.reindex(['ymd', 'year', 'month', 'prcp', 'tmin', 'tmax', 'tavg'], axis=1)
     summary_df.sort_values(by=['ymd'], inplace=True)
 
     # summary_df.set_index('ymd', inplace=True)
+    # print(summary_df)
     return summary_df
 
 
-df1 = fetch_station_summary("USC00043244") # Fremont
-df1 = df1.loc[df1['month'] == 8]
+def get_station_averages_by_month(staion_id: str) -> Any:
+    """Return station averages by month."""
+    df1 = fetch_station_summary(staion_id)
+    # YEAR_MIN = 2015
+    YEAR_MIN = 2012
+    YEAR_MAX = 2022
+    NUM_YEARS = (YEAR_MAX - YEAR_MIN) + 1
+    df1 = df1.loc[(df1['year'] >= YEAR_MIN) & (df1['year'] <= YEAR_MAX)]
+    df1.drop(['ymd', 'year'], axis=1, inplace=True)
+    df1 = df1.groupby(['month']).agg({'prcp': 'sum',
+                                      'tmin': 'mean',
+                                      'tmax': 'mean',
+                                      'tavg': 'mean'})
+    # Average percipitation per month.
+    df1['prcp'] = df1['prcp'] / NUM_YEARS
 
-#df2 = fetch_station_summary("USC00047965") # Santa Rosa
-df2 = fetch_station_summary("USW00094298") # Vancouver WA
-df2 = df2.loc[df2['month'] == 8]
+    return df1
 
 
-df = pd.merge(df1[['ymd', 'tavg']],  df2[['ymd', 'tavg']], on='ymd', how="inner")
-print(df)
+def compare_stations_tavg(base_station: Tuple, stations: List[Tuple]) -> Any:
+    logger.info("Comparing temperatures.")
+    df0 = get_station_averages_by_month(base_station[0])
+    df0.drop(['prcp', 'tmin', 'tmax'], axis=1, inplace=True)
+    df0['tavg'] = (df0['tavg'] * 9 / 5) + 32
+    merged = None
+    for station in stations:
+        df1 = get_station_averages_by_month(station[0])
+        df1.drop(['prcp', 'tmin', 'tmax'], axis=1, inplace=True)
+        # print("************")
+        # print(df1)
+        df1['tavg'] = (df1['tavg'] * 9 / 5) + 32
+        df1 = df1 - df0
+        df1.rename(columns={"tavg": station[1]}, inplace=True)
+        # print(df1)
+        if merged is None:
+            # print(df1)
+            merged = df1.copy()
+        else:
+            merged = pd.merge(merged, df1, on='month', how='outer')
+    return merged
 
-df['diff'] = (df['tavg_y'] - df['tavg_x'])
-print(df)
 
-x = df['diff'].mean()
-print(x)
+def compare_stations_prcp(base_station: Tuple, stations: List[Tuple]) -> Any:
+    logger.info("Computing precipitation.")
+    df0 = get_station_averages_by_month(base_station[0])
+    df0.drop(['tmin', 'tmax', 'tavg'], axis=1, inplace=True)
+    merged = None
+    for station in stations:
+        df1 = get_station_averages_by_month(station[0])
+        df1.drop(['tmin', 'tmax', 'tavg'], axis=1, inplace=True)
+        df1 = df1 - df0
+        df1.rename(columns={"prcp": station[1]}, inplace=True)
+        if merged is None:
+            # print(df1)
+            merged = df1.copy()
+        else:
+            merged = pd.merge(merged, df1, on='month', how='outer')
+    return merged
 
+
+fig, ax = plt.subplots(nrows=2, ncols=1, gridspec_kw={"hspace": 0.5})
+
+# plt.subplots_adjust( hspace=0.2)
+
+
+df = compare_stations_tavg(BASE_STATION, STATION_LIST)
+# ax[0].hlines(y=0.0,  linewidth=1, color='gray')
+df.plot(ax=ax[0], title=f"Temp [F] compared to station [{BASE_STATION[1]}] ").axhline(y=0.0, color='gray',
+                                                                                      linestyle='--')
+
+# plt.legend(fontsize = 7)
+
+# ax.legend(fontsize=10)
+
+df = compare_stations_prcp(BASE_STATION, STATION_LIST)
+df.plot(ax=ax[1], title=f"Precipitation [Inch] compared to station [{BASE_STATION[1]}] ").axhline(y=0.0, color='gray',
+                                                                                      linestyle='--')
+
+plt.show()
