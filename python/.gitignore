@@ -1,1 +1,5 @@
-.idea
+_data_cache
+.run.sh*
+_report.csv
+.DS_Store
+__pycache__
